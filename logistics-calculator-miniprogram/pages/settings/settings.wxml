@@ -1,0 +1,63 @@
+<view class="container">
+  <view class="card user-info">
+    <view class="avatar">
+      <image src="{{userInfo.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+    </view>
+    <view class="user-detail">
+      <view class="nickname">{{userInfo.nickname || '未登录'}}</view>
+      <view class="member-status {{userInfo.isMember ? 'member' : 'non-member'}}">
+        {{userInfo.isMember ? '会员' : '普通用户'}}
+      </view>
+    </view>
+  </view>
+  
+  <view class="card" wx:if="{{!userInfo.isMember}}">
+    <view class="section-title">升级会员</view>
+    <view class="membership-card">
+      <view class="price">¥9.9<span class="unit">/月</span></view>
+      <view class="benefits">
+        <view class="benefit-item">✓ 无限次计算</view>
+        <view class="benefit-item">✓ PDF导出功能</view>
+        <view class="benefit-item">✓ 历史记录保存</view>
+        <view class="benefit-item">✓ 优先客服支持</view>
+      </view>
+      <button class="btn-primary" bindtap="onUpgrade">立即升级</button>
+    </view>
+  </view>
+  
+  <view class="card">
+    <view class="section-title">今日使用情况</view>
+    <view class="usage-info">
+      <view class="usage-item">
+        <text class="label">剩余次数</text>
+        <text class="value">{{freeCountRemaining}}</text>
+      </view>
+      <view class="usage-item">
+        <text class="label">已用次数</text>
+        <text class="value">{{usedCount}}</text>
+      </view>
+    </view>
+  </view>
+  
+  <view class="card">
+    <view class="section-title">功能菜单</view>
+    <view class="menu-list">
+      <view class="menu-item" bindtap="onHistory">
+        <text class="menu-icon">📋</text>
+        <text class="menu-text">历史记录</text>
+      </view>
+      <view class="menu-item" bindtap="onHelp">
+        <text class="menu-icon">❓</text>
+        <text class="menu-text">帮助中心</text>
+      </view>
+      <view class="menu-item" bindtap="onFeedback">
+        <text class="menu-icon">💬</text>
+        <text class="menu-text">意见反馈</text>
+      </view>
+      <view class="menu-item" bindtap="onContact">
+        <text class="menu-icon">📞</text>
+        <text class="menu-text">在线客服</text>
+      </view>
+    </view>
+  </view>
+</view>

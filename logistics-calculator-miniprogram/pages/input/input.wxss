@@ -1,0 +1,27 @@
+.dimension-inputs {
+  display: flex;
+  gap: 20rpx;
+}
+
+.dimension-input {
+  flex: 1;
+}
+
+.picker {
+  background-color: #f5f5f5;
+  border-radius: 8rpx;
+  padding: 20rpx;
+  font-size: 28rpx;
+}
+
+.radio-item, .checkbox-item {
+  display: block;
+  margin-bottom: 20rpx;
+  font-size: 28rpx;
+}
+
+.free-count-tip {
+  text-align: center;
+  color: #faad14;
+  font-size: 26rpx;
+}

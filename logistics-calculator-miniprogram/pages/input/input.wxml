@@ -1,0 +1,64 @@
+<view class="container">
+  <view class="card">
+    <view class="section-title">产品信息</view>
+    
+    <view class="form-item">
+      <view class="form-label">尺寸 (cm)</view>
+      <view class="dimension-inputs">
+        <input class="form-input dimension-input" type="digit" placeholder="长" bindinput="onLengthInput" value="{{length}}"/>
+        <input class="form-input dimension-input" type="digit" placeholder="宽" bindinput="onWidthInput" value="{{width}}"/>
+        <input class="form-input dimension-input" type="digit" placeholder="高" bindinput="onHeightInput" value="{{height}}"/>
+      </view>
+    </view>
+    
+    <view class="form-item">
+      <view class="form-label">单件重量 (kg)</view>
+      <input class="form-input" type="digit" placeholder="请输入重量" bindinput="onWeightInput" value="{{weight}}"/>
+    </view>
+    
+    <view class="form-item">
+      <view class="form-label">产品数量 (件)</view>
+      <input class="form-input" type="number" placeholder="请输入数量" bindinput="onQuantityInput" value="{{quantity}}"/>
+    </view>
+  </view>
+  
+  <view class="card">
+    <view class="section-title">物流信息</view>
+    
+    <view class="form-item">
+      <view class="form-label">目的国家</view>
+      <picker mode="selector" range="{{countries}}" range-key="name" bindchange="onCountryChange" value="{{countryIndex}}">
+        <view class="picker">{{countries[countryIndex].name}}</view>
+      </picker>
+    </view>
+    
+    <view class="form-item">
+      <view class="form-label">物流方式</view>
+      <radio-group bindchange="onShippingMethodChange">
+        <label class="radio-item">
+          <radio value="AIR" checked="{{shippingMethod === 'AIR'}}"/>空派
+        </label>
+        <label class="radio-item">
+          <radio value="SEA" checked="{{shippingMethod === 'SEA'}}"/>海运拼箱
+        </label>
+      </radio-group>
+    </view>
+    
+    <view class="form-item">
+      <checkbox-group bindchange="onSpecialServicesChange">
+        <label class="checkbox-item">
+          <checkbox value="residential" checked="{{residentialDelivery}}"/>住宅配送
+        </label>
+        <label class="checkbox-item">
+          <checkbox value="insurance" checked="{{insurance}}"/>购买保险
+        </label>
+      </checkbox-group>
+    </view>
+  </view>
+  
+  <view class="card free-count-tip">
+    <text>今日剩余免费次数：{{freeCountRemaining}}</text>
+  </view>
+  
+  <button class="btn-primary" bindtap="onCalculate">开始计算</button>
+</view>

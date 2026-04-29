@@ -1,0 +1,39 @@
+<view class="container">
+  <view class="card result-summary">
+    <view class="total-cost">
+      <view class="label">总成本</view>
+      <view class="value">¥{{result.totalCost}}</view>
+    </view>
+    <view class="cost-per-item">
+      <view class="label">单件成本</view>
+      <view class="value">¥{{result.costPerItem}}</view>
+    </view>
+  </view>
+  
+  <view class="card">
+    <view class="section-title">费用明细</view>
+    <view class="fee-list">
+      <view class="fee-item" wx:for="{{result.feeDetails}}" wx:key="index">
+        <view class="fee-info">
+          <view class="fee-name">{{item.feeName}}</view>
+          <view class="fee-desc">{{item.description}}</view>
+        </view>
+        <view class="fee-amount">¥{{item.amount}}</view>
+      </view>
+    </view>
+  </view>
+  
+  <view class="card warnings" wx:if="{{result.warnings && result.warnings.length > 0}}">
+    <view class="section-title">重要提示</view>
+    <view class="warning-item" wx:for="{{result.warnings}}" wx:key="index">
+      <text class="warning-icon">⚠️</text>
+      <text class="warning-text">{{item}}</text>
+    </view>
+  </view>
+  
+  <view class="action-buttons">
+    <button class="btn-secondary" bindtap="onRecalculate">重新计算</button>
+    <button class="btn-primary" bindtap="onSave">保存结果</button>
+    <button class="btn-share" open-type="share">分享</button>
+  </view>
+</view>
