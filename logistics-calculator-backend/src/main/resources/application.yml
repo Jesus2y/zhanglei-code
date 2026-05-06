@@ -8,7 +8,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/logistics_calculator?useSSL=false&serverTimezone=UTC&characterEncoding=utf8
     username: root
-    password: your_password
+    password: Zlx@8668612590
     driver-class-name: com.mysql.cj.jdbc.Driver
   
   jpa:
