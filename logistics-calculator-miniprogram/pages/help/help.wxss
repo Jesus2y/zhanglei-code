@@ -1,0 +1,22 @@
+.paragraph {
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.8;
+}
+
+.faq-item {
+  margin-bottom: 24rpx;
+}
+
+.q {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+
+.a {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.8;
+}

@@ -28,6 +28,15 @@
   margin-bottom: 10rpx;
 }
 
+.phone-number {
+  margin-bottom: 10rpx;
+}
+
+.phone-text {
+  font-size: 26rpx;
+  color: #666;
+}
+
 .member-status {
   font-size: 24rpx;
   padding: 5rpx 15rpx;
@@ -120,4 +129,11 @@
 .menu-text {
   font-size: 28rpx;
   color: #333;
+  flex: 1;
+}
+
+.menu-arrow {
+  font-size: 40rpx;
+  color: #ccc;
+  margin-left: 10rpx;
 }

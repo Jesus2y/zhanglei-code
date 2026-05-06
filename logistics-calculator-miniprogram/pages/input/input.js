@@ -16,24 +16,37 @@ Page({
     shippingMethod: 'AIR',
     residentialDelivery: false,
     insurance: false,
-    freeCountRemaining: 3
+    freeCountRemaining: 3,
+    isMember: false
   },
 
   onLoad() {
-    this.updateFreeCount();
+    this.ensureLoginAndRefresh();
   },
 
   onShow() {
     this.updateFreeCount();
   },
 
+  ensureLoginAndRefresh() {
+    app.ensureLogin()
+      .then(() => this.updateFreeCount())
+      .catch(() => {
+        wx.showToast({ title: '登录失败，请重试', icon: 'none' });
+      });
+  },
+
   updateFreeCount() {
     const userInfo = app.globalData.userInfo;
-    if (userInfo && !userInfo.isMember) {
-      this.setData({
-        freeCountRemaining: Math.max(0, 3 - (userInfo.calculationCountToday || 0))
-      });
+    if (!userInfo) {
+      return;
     }
+
+    const isMember = !!userInfo.isMember;
+    this.setData({
+      isMember,
+      freeCountRemaining: isMember ? 9999 : Math.max(0, 3 - (userInfo.calculationCountToday || 0))
+    });
   },
 
   onLengthInput(e) {
@@ -57,7 +70,7 @@ Page({
   },
 
   onCountryChange(e) {
-    this.setData({ countryIndex: e.detail.value });
+    this.setData({ countryIndex: Number(e.detail.value) });
   },
 
   onShippingMethodChange(e) {
@@ -74,37 +87,37 @@ Page({
 
   validateForm() {
     const { length, width, height, weight, quantity } = this.data;
-    
+
     if (!length || !width || !height) {
       wx.showToast({ title: '请输入完整的尺寸', icon: 'none' });
       return false;
     }
-    
+
     if (!weight) {
       wx.showToast({ title: '请输入重量', icon: 'none' });
       return false;
     }
-    
+
     if (!quantity) {
       wx.showToast({ title: '请输入数量', icon: 'none' });
       return false;
     }
-    
+
     if (parseFloat(length) <= 0 || parseFloat(width) <= 0 || parseFloat(height) <= 0) {
       wx.showToast({ title: '尺寸必须大于0', icon: 'none' });
       return false;
     }
-    
+
     if (parseFloat(weight) <= 0) {
       wx.showToast({ title: '重量必须大于0', icon: 'none' });
       return false;
     }
-    
-    if (parseInt(quantity) <= 0) {
+
+    if (parseInt(quantity, 10) <= 0) {
       wx.showToast({ title: '数量必须大于0', icon: 'none' });
       return false;
     }
-    
+
     return true;
   },
 
@@ -113,14 +126,14 @@ Page({
       return;
     }
 
-    if (this.data.freeCountRemaining <= 0) {
+    if (!this.data.isMember && this.data.freeCountRemaining <= 0) {
       wx.showModal({
         title: '提示',
-        content: '今日免费次数已用完，是否升级为会员？',
-        confirmText: '升级会员',
+        content: '今日免费次数已用完，是否前往会员中心？',
+        confirmText: '去看看',
         success: (res) => {
           if (res.confirm) {
-            wx.navigateTo({ url: '/pages/settings/settings' });
+            wx.switchTab({ url: '/pages/settings/settings' });
           }
         }
       });
@@ -130,38 +143,40 @@ Page({
     wx.showLoading({ title: '计算中...' });
 
     const country = this.data.countries[this.data.countryIndex];
-    
-    wx.request({
+    const payload = {
+      length: parseFloat(this.data.length),
+      width: parseFloat(this.data.width),
+      height: parseFloat(this.data.height),
+      weight: parseFloat(this.data.weight),
+      quantity: parseInt(this.data.quantity, 10),
+      country: country.code,
+      shippingMethod: this.data.shippingMethod,
+      residentialDelivery: this.data.residentialDelivery,
+      insurance: this.data.insurance
+    };
+
+    app.request({
       url: `${app.globalData.apiBaseUrl}/calculate`,
       method: 'POST',
-      header: {
-        'X-User-OpenID': app.globalData.userInfo.openid
-      },
-      data: {
-        length: parseFloat(this.data.length),
-        width: parseFloat(this.data.width),
-        height: parseFloat(this.data.height),
-        weight: parseFloat(this.data.weight),
-        quantity: parseInt(this.data.quantity),
-        country: country.code,
-        shippingMethod: this.data.shippingMethod,
-        residentialDelivery: this.data.residentialDelivery,
-        insurance: this.data.insurance
-      },
-      success: (res) => {
-        wx.hideLoading();
-        if (res.data && res.data.totalCost) {
-          wx.navigateTo({
-            url: `/pages/result/result?data=${encodeURIComponent(JSON.stringify(res.data))}`
-          });
-        } else {
-          wx.showToast({ title: res.data.message || '计算失败', icon: 'none' });
+      data: payload
+    }).then((resData) => {
+      wx.hideLoading();
+      if (resData && resData.totalCost !== undefined) {
+        if (app.globalData.userInfo && !app.globalData.userInfo.isMember) {
+          app.globalData.userInfo.calculationCountToday = (app.globalData.userInfo.calculationCountToday || 0) + 1;
+          wx.setStorageSync('userInfo', app.globalData.userInfo);
+          this.updateFreeCount();
         }
-      },
-      fail: () => {
-        wx.hideLoading();
-        wx.showToast({ title: '网络错误，请重试', icon: 'none' });
+
+        wx.navigateTo({
+          url: `/pages/result/result?data=${encodeURIComponent(JSON.stringify(resData))}`
+        });
+      } else {
+        wx.showToast({ title: (resData && resData.message) || '计算失败', icon: 'none' });
       }
+    }).catch((err) => {
+      wx.hideLoading();
+      wx.showToast({ title: err.message || '网络错误，请重试', icon: 'none' });
     });
   }
 });

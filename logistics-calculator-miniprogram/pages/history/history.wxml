@@ -1,0 +1,23 @@
+<view class="container">
+  <view class="card" wx:if="{{historyList.length === 0}}">
+    <view class="empty">暂无历史记录，先去计算一次吧</view>
+  </view>
+
+  <view class="card" wx:for="{{historyList}}" wx:key="id">
+    <view class="row">
+      <text class="label">总成本</text>
+      <text class="value">¥{{item.totalCost}}</text>
+    </view>
+    <view class="row" wx:if="{{item.costPerItem}}">
+      <text class="label">单件成本</text>
+      <text class="value">¥{{item.costPerItem}}</text>
+    </view>
+    <view class="row" wx:if="{{item.country}}">
+      <text class="label">目的地</text>
+      <text>{{item.country}} / {{item.shippingMethod}}</text>
+    </view>
+    <view class="time">{{item.createdAt}}</view>
+  </view>
+
+  <button class="btn-secondary" wx:if="{{historyList.length > 0}}" bindtap="onClearHistory">清空历史记录</button>
+</view>

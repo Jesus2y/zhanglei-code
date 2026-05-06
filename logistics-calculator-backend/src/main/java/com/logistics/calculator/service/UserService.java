@@ -58,4 +58,9 @@ public class UserService {
         user.setMembershipExpireDate(expireDate);
         return userRepository.save(user);
     }
+
+    @Transactional
+    public User save(User user) {
+        return userRepository.save(user);
+    }
 }

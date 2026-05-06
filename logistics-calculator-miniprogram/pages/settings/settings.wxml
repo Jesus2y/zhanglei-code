@@ -1,17 +1,20 @@
 <view class="container">
   <view class="card user-info">
     <view class="avatar">
-      <image src="{{userInfo.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+      <image src="{{(userInfo && userInfo.avatarUrl) || ''}}" mode="aspectFill"></image>
     </view>
     <view class="user-detail">
-      <view class="nickname">{{userInfo.nickname || '未登录'}}</view>
-      <view class="member-status {{userInfo.isMember ? 'member' : 'non-member'}}">
-        {{userInfo.isMember ? '会员' : '普通用户'}}
+      <view class="nickname">{{(userInfo && userInfo.nickname) || '微信用户'}}</view>
+      <view class="phone-number" wx:if="{{userInfo && userInfo.phoneNumber}}">
+        <text class="phone-text">📱 {{userInfo.phoneNumber}}</text>
+      </view>
+      <view class="member-status {{userInfo && userInfo.isMember ? 'member' : 'non-member'}}">
+        {{userInfo && userInfo.isMember ? '会员' : '普通用户'}}
       </view>
     </view>
   </view>
-  
-  <view class="card" wx:if="{{!userInfo.isMember}}">
+
+  <view class="card" wx:if="{{!(userInfo && userInfo.isMember)}}">
     <view class="section-title">升级会员</view>
     <view class="membership-card">
       <view class="price">¥9.9<span class="unit">/月</span></view>
@@ -24,7 +27,18 @@
       <button class="btn-primary" bindtap="onUpgrade">立即升级</button>
     </view>
   </view>
-  
+
+  <view class="card">
+    <view class="section-title">账号信息</view>
+    <view class="menu-list">
+      <view class="menu-item" bindtap="onBindPhone">
+        <text class="menu-icon">📱</text>
+        <text class="menu-text">{{(userInfo && userInfo.phoneNumber) ? '修改手机号' : '绑定手机号'}}</text>
+        <text class="menu-arrow">›</text>
+      </view>
+    </view>
+  </view>
+
   <view class="card">
     <view class="section-title">今日使用情况</view>
     <view class="usage-info">
@@ -38,7 +52,7 @@
       </view>
     </view>
   </view>
-  
+
   <view class="card">
     <view class="section-title">功能菜单</view>
     <view class="menu-list">

@@ -1,0 +1,22 @@
+<view class="container">
+  <view class="card">
+    <view class="section-title">使用教程</view>
+    <view class="paragraph">1. 在计算页输入尺寸、重量、数量</view>
+    <view class="paragraph">2. 选择国家与物流方式</view>
+    <view class="paragraph">3. 勾选特殊服务并点击开始计算</view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">常见问题</view>
+    <view class="faq-item" wx:for="{{faqs}}" wx:key="q">
+      <view class="q">Q: {{item.q}}</view>
+      <view class="a">A: {{item.a}}</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">联系我们</view>
+    <view class="paragraph">客服热线：400-123-4567</view>
+    <view class="paragraph">邮箱：support@logistics-calc.com</view>
+  </view>
+</view>
