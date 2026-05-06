@@ -1,0 +1,35 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: logistics-calculator
+  
+  datasource:
+    url: jdbc:mysql://localhost:3306/logistics_calculator?useSSL=false&serverTimezone=UTC&characterEncoding=utf8
+    username: root
+    password: your_password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
+
+app:
+  rate-limit:
+    free-count: 3
+    window-size: 86400
+  
+  pricing:
+    membership:
+      monthly-price: 9.9
+      currency: CNY
