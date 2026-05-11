@@ -4,7 +4,8 @@ Page({
   data: {
     userInfo: null,
     freeCountRemaining: 3,
-    usedCount: 0
+    usedCount: 0,
+    isLoading: false  // 添加加载状态
   },
 
   onLoad() {
@@ -12,16 +13,35 @@ Page({
   },
 
   onShow() {
-    this.loadUserInfo();
+    // 避免重复加载：只有当userInfo为空时才加载
+    if (!this.data.userInfo) {
+      this.loadUserInfo();
+    }
   },
 
   loadUserInfo() {
+    // 防止重复请求
+    if (this.data.isLoading) {
+      console.log('正在加载中，跳过重复请求');
+      return;
+    }
+
+    this.setData({ isLoading: true });
+    wx.showLoading({ title: '加载中...' });
+
+    console.log('开始加载用户信息...');
+    
     app.ensureLogin()
-      .then(() => app.request({
-        url: `${app.globalData.apiBaseUrl}/user/profile`,
-        method: 'GET'
-      }))
+      .then(() => {
+        console.log('登录成功，开始请求用户资料...');
+        return app.request({
+          url: `${app.globalData.apiBaseUrl}/user/profile`,
+          method: 'GET'
+        });
+      })
       .then((profile) => {
+        console.log('用户信息加载成功:', profile);
+        
         app.globalData.userInfo = profile;
         wx.setStorageSync('userInfo', profile);
 
@@ -31,27 +51,82 @@ Page({
         this.setData({
           userInfo: profile,
           freeCountRemaining: remaining,
-          usedCount
+          usedCount,
+          isLoading: false
         });
+        
+        wx.hideLoading();
       })
-      .catch(() => {
-        wx.showToast({ title: '用户信息加载失败', icon: 'none' });
+      .catch((err) => {
+        console.error('加载用户信息失败:', err);
+        this.setData({ isLoading: false });
+        wx.hideLoading();
+        wx.showToast({ 
+          title: err.message || '用户信息加载失败', 
+          icon: 'none',
+          duration: 2000
+        });
       });
   },
 
   onUpgrade() {
+    if (this.data.isLoading) return;
+
+    this.setData({ isLoading: true });
+    wx.showLoading({ title: '正在创建订单...' });
+
     app.request({
       url: `${app.globalData.apiBaseUrl}/payment/create`,
-      method: 'POST',
-      data: { plan: 'MONTHLY_MEMBER' }
+      method: 'POST'
     }).then((res) => {
-      wx.showModal({
-        title: '会员支付',
-        content: `订单已创建：${res.orderNo}，金额¥${res.amount}`,
-        showCancel: false
+      wx.hideLoading();
+      this.setData({ isLoading: false });
+
+      if (!res.success) {
+        wx.showToast({ title: res.message || '订单创建失败', icon: 'none' });
+        return;
+      }
+
+      // 调起微信支付
+      wx.requestPayment({
+        appId: res.appId,
+        timeStamp: String(res.timeStamp),
+        nonceStr: res.nonceStr,
+        package: res.packageValue,  // 后端返回的 packageValue
+        signType: 'RSA',
+        paySign: res.paySign,
+
+        success(payRes) {
+          wx.showToast({ title: '支付成功', icon: 'success' });
+          // 支付成功后刷新用户状态
+          setTimeout(() => {
+            app.globalData.userInfo.isMember = true;
+            wx.setStorageSync('userInfo', app.globalData.userInfo);
+            const pages = getCurrentPages();
+            const currentPage = pages[pages.length - 1];
+            if (currentPage && currentPage.loadUserInfo) {
+              currentPage.loadUserInfo();
+            }
+          }, 1500);
+        },
+
+        fail(err) {
+          // 用户取消支付或支付失败
+          console.log('支付失败/取消:', err);
+          if (err.errMsg && !err.errMsg.includes('cancel')) {
+            wx.showToast({ title: '支付失败，请重试', icon: 'none' });
+          }
+        },
+
+        complete() {
+          // 无论成功失败都重置状态
+          this.setData({ isLoading: false });
+        }
       });
-    }).catch(() => {
-      wx.showToast({ title: '支付接口暂不可用', icon: 'none' });
+    }).catch((err) => {
+      this.setData({ isLoading: false });
+      wx.hideLoading();
+      wx.showToast({ title: err.message || '支付接口异常', icon: 'none' });
     });
   },
 

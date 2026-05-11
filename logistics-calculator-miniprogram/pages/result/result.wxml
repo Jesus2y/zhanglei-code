@@ -1,16 +1,42 @@
 <view class="container">
   <view class="card result-summary">
-    <view class="total-cost">
-      <view class="label">总成本</view>
-      <view class="value">¥{{result.totalCost}}</view>
+    <!-- 价格区间展示 -->
+    <view wx:if="{{result.needQuote}}" class="total-cost quote-notice">
+      <view class="label">预估运费</view>
+      <view class="value quote-text">需单独询价</view>
+      <view class="quote-hint">海运敏感货价格需根据具体货物确认（通常上浮30%-50%）</view>
     </view>
-    <view class="cost-per-item">
+    <view wx:else class="total-cost">
+      <view class="label">预估总成本</view>
+      <view class="price-range">
+        <text class="price-min">¥{{result.totalCostMin}}</text>
+        <text class="price-sep">~</text>
+        <text class="price-max">¥{{result.totalCostMax}}</text>
+      </view>
+      <view class="price-mid">参考价：¥{{result.totalCost}}</view>
+    </view>
+
+    <!-- 单件成本区间 -->
+    <view wx:if="{{!result.needQuote && result.costPerItemMin}}" class="cost-per-item">
       <view class="label">单件成本</view>
-      <view class="value">¥{{result.costPerItem}}</view>
+      <view class="value">¥{{result.costPerItemMin}} ~ ¥{{result.costPerItemMax}}</view>
+    </view>
+
+    <!-- 货物类型和时效信息 -->
+    <view class="meta-info">
+      <view class="meta-item" wx:if="{{result.goodsType}}">
+        <text class="meta-label">货物类型：</text>
+        <text class="meta-value" class="{{result.goodsType === 'SENSITIVE' ? 'sensitive-tag' : 'normal-tag'}}">{{result.goodsType === 'SENSITIVE' ? '敏感货' : '普货'}}</text>
+      </view>
+      <view class="meta-item" wx:if="{{result.deliveryTime}}">
+        <text class="meta-label">预计时效：</text>
+        <text class="meta-value delivery-time">{{result.deliveryTime}}</text>
+      </view>
     </view>
   </view>
-  
-  <view class="card">
+
+  <!-- 费用明细 -->
+  <view class="card" wx:if="{{!result.needQuote}}">
     <view class="section-title">费用明细</view>
     <view class="fee-list">
       <view class="fee-item" wx:for="{{result.feeDetails}}" wx:key="index">
@@ -18,11 +44,16 @@
           <view class="fee-name">{{item.feeName}}</view>
           <view class="fee-desc">{{item.description}}</view>
         </view>
-        <view class="fee-amount">¥{{item.amount}}</view>
+        <view class="fee-amount" wx:if="{{item.amountMin !== undefined}}">
+          ¥{{item.amountMin}}~¥{{item.amountMax}}
+          <view class="fee-ref">参考：¥{{item.amount}}</view>
+        </view>
+        <view class="fee-amount" wx:else>¥{{item.amount}}</view>
       </view>
     </view>
   </view>
   
+  <!-- 重要提示 -->
   <view class="card warnings" wx:if="{{result.warnings && result.warnings.length > 0}}">
     <view class="section-title">重要提示</view>
     <view class="warning-item" wx:for="{{result.warnings}}" wx:key="index">

@@ -14,6 +14,7 @@ Page({
     ],
     countryIndex: 0,
     shippingMethod: 'AIR',
+    goodsType: 'NORMAL',
     residentialDelivery: false,
     insurance: false,
     freeCountRemaining: 3,
@@ -75,6 +76,10 @@ Page({
 
   onShippingMethodChange(e) {
     this.setData({ shippingMethod: e.detail.value });
+  },
+
+  onGoodsTypeChange(e) {
+    this.setData({ goodsType: e.detail.value });
   },
 
   onSpecialServicesChange(e) {
@@ -151,6 +156,7 @@ Page({
       quantity: parseInt(this.data.quantity, 10),
       country: country.code,
       shippingMethod: this.data.shippingMethod,
+      goodsType: this.data.goodsType,
       residentialDelivery: this.data.residentialDelivery,
       insurance: this.data.insurance
     };

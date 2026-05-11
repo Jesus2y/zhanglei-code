@@ -36,10 +36,22 @@
       <view class="form-label">物流方式</view>
       <radio-group bindchange="onShippingMethodChange">
         <label class="radio-item">
-          <radio value="AIR" checked="{{shippingMethod === 'AIR'}}"/>空派
+          <radio value="AIR" checked="{{shippingMethod === 'AIR'}}"/>空运(空派/专线)
         </label>
         <label class="radio-item">
-          <radio value="SEA" checked="{{shippingMethod === 'SEA'}}"/>海运拼箱
+          <radio value="SEA" checked="{{shippingMethod === 'SEA'}}"/>海运(海派/拼箱)
+        </label>
+      </radio-group>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">货物类型</view>
+      <radio-group bindchange="onGoodsTypeChange">
+        <label class="radio-item">
+          <radio value="NORMAL" checked="{{goodsType === 'NORMAL'}}"/>普货（服饰、家居等）
+        </label>
+        <label class="radio-item">
+          <radio value="SENSITIVE" checked="{{goodsType === 'SENSITIVE'}}"/>敏感货（带电、化妆品等）
         </label>
       </radio-group>
     </view>

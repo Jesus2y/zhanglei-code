@@ -62,8 +62,17 @@ public class CalculationRequest {
      * 物流方式（AIR-空运，SEA-海运）
      */
     @NotBlank(message = "物流方式不能为空")
-    @Pattern(regexp = "^(AIR|SEA)$", message = "物流方式只能为空派(AIR)或海运(SEA)")
+    @Pattern(regexp = "^(AIR|SEA)$", message = "物流方式只能为空运(AIR)或海运(SEA)")
     private String shippingMethod;
+    
+    /**
+     * 货物类型（NORMAL-普货，SENSITIVE-敏感货）
+     * 普货：服饰、家居等常规物品
+     * 敏感货：带电产品、化妆品、液体等特殊物品
+     */
+    @NotBlank(message = "货物类型不能为空")
+    @Pattern(regexp = "^(NORMAL|SENSITIVE)$", message = "货物类型只能为普货(NORMAL)或敏感货(SENSITIVE)")
+    private String goodsType;
     
     /**
      * 是否需要住宅配送（默认不需要）

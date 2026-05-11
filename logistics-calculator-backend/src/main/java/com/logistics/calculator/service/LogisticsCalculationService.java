@@ -18,55 +18,150 @@ public class LogisticsCalculationService {
     public CalculationResult calculate(CalculationRequest request) {
         List<CalculationResult.FeeDetail> feeDetails = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
+        boolean isAir = "AIR".equals(request.getShippingMethod());
+        boolean isSensitive = "SENSITIVE".equals(request.getGoodsType());
+        boolean needQuote = !isAir && isSensitive; // 海运敏感货需单独询价
         
         BigDecimal volumeWeight = calculateVolumeWeight(request);
         BigDecimal chargeableWeight = determineChargeableWeight(request, volumeWeight);
         BigDecimal volumeCBM = calculateVolumeCBM(request);
         
-        BigDecimal baseFreight = calculateBaseFreight(request, chargeableWeight, volumeCBM);
-        feeDetails.add(createFeeDetail("基础运费", "按计费重量计算", baseFreight, "CNY"));
+        // 获取基础运费费率区间
+        RateRange baseRateRange = getFreightRateRange(request);
         
-        BigDecimal fuelSurcharge = calculateFuelSurcharge(baseFreight, request.getCountry());
-        feeDetails.add(createFeeDetail("燃油附加费", "基础运费的百分比", fuelSurcharge, "CNY"));
+        // 基础运费区间计算
+        BigDecimal baseFreightMin, baseFreightMax;
+        if (isAir) {
+            baseFreightMin = chargeableWeight.multiply(baseRateRange.min);
+            baseFreightMax = chargeableWeight.multiply(baseRateRange.max);
+        } else {
+            baseFreightMin = volumeCBM.multiply(baseRateRange.min);
+            baseFreightMax = volumeCBM.multiply(baseRateRange.max);
+        }
+        feeDetails.add(createFeeDetail("基础运费", getBaseFreightDesc(request), baseFreightMin, baseFreightMax, "CNY"));
         
-        BigDecimal destinationFee = calculateDestinationFee(request, chargeableWeight, volumeCBM);
-        feeDetails.add(createFeeDetail("目的港杂费", "目的地相关费用", destinationFee, "CNY"));
+        // 燃油附加费区间（按基础运费的百分比）
+        BigDecimal fuelMin = calculateFuelSurcharge(baseFreightMin, request.getCountry());
+        BigDecimal fuelMax = calculateFuelSurcharge(baseFreightMax, request.getCountry());
+        feeDetails.add(createFeeDetail("燃油附加费", "基础运费的百分比", fuelMin, fuelMax, "CNY"));
         
-        BigDecimal customsFee = BigDecimal.ZERO;
-        if ("SEA".equals(request.getShippingMethod())) {
-            customsFee = calculateCustomsFee(request.getCountry());
-            feeDetails.add(createFeeDetail("清关费用", "海关手续费", customsFee, "CNY"));
+        // 目的港杂费
+        BigDecimal destMin = calculateDestinationFee(request, chargeableWeight, volumeCBM, true);
+        BigDecimal destMax = calculateDestinationFee(request, chargeableWeight, volumeCBM, false);
+        feeDetails.add(createFeeDetail("目的港杂费", "目的地相关费用", destMin, destMax, "CNY"));
+        
+        // 清关费用（仅海运，固定费用无区间）
+        BigDecimal customsMin = BigDecimal.ZERO, customsMax = BigDecimal.ZERO;
+        if (!isAir) {
+            customsMin = customsMax = calculateCustomsFee(request.getCountry(), isSensitive);
+            feeDetails.add(createFeeDetail("清关费用", "海关手续费", customsMin, customsMax, "CNY"));
         }
         
-        BigDecimal warehouseFee = calculateWarehouseFee(request, chargeableWeight);
-        feeDetails.add(createFeeDetail("海外仓操作费", "仓库处理费用", warehouseFee, "CNY"));
+        // 海外仓操作费（按计费重量）
+        BigDecimal warehouseMin = chargeableWeight.multiply(new BigDecimal("2.00")).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal warehouseMax = chargeableWeight.multiply(new BigDecimal("3.50")).setScale(2, RoundingMode.HALF_UP);
+        feeDetails.add(createFeeDetail("海外仓操作费", "仓库处理费用", warehouseMin, warehouseMax, "CNY"));
         
-        BigDecimal residentialFee = BigDecimal.ZERO;
+        // 住宅配送费（固定费用）
+        BigDecimal residentialMin = BigDecimal.ZERO, residentialMax = BigDecimal.ZERO;
         if (Boolean.TRUE.equals(request.getResidentialDelivery())) {
-            residentialFee = calculateResidentialFee(request.getCountry());
-            feeDetails.add(createFeeDetail("住宅配送费", "住宅地址配送", residentialFee, "CNY"));
+            BigDecimal resFee = calculateResidentialFee(request.getCountry());
+            residentialMin = residentialMax = resFee;
+            feeDetails.add(createFeeDetail("住宅配送费", "住宅地址配送", resFee, resFee, "CNY"));
         }
         
-        BigDecimal insuranceFee = BigDecimal.ZERO;
+        // 保险费（按基础运费百分比）
+        BigDecimal insuranceMin = BigDecimal.ZERO, insuranceMax = BigDecimal.ZERO;
         if (Boolean.TRUE.equals(request.getInsurance())) {
-            insuranceFee = calculateInsuranceFee(baseFreight);
-            feeDetails.add(createFeeDetail("保险费", "货物保险", insuranceFee, "CNY"));
+            insuranceMin = calculateInsuranceFee(baseFreightMin);
+            insuranceMax = calculateInsuranceFee(baseFreightMax);
+            feeDetails.add(createFeeDetail("保险费", "货物保险(保额的3%)", insuranceMin, insuranceMax, "CNY"));
         }
         
-        BigDecimal totalCost = baseFreight.add(fuelSurcharge).add(destinationFee)
-                .add(customsFee).add(warehouseFee).add(residentialFee).add(insuranceFee);
+        // 总费用区间汇总
+        BigDecimal totalCostMin = baseFreightMin.add(fuelMin).add(destMin)
+                .add(customsMin).add(warehouseMin).add(residentialMin).add(insuranceMin)
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalCostMax = baseFreightMax.add(fuelMax).add(destMax)
+                .add(customsMax).add(warehouseMax).add(residentialMax).add(insuranceMax)
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalCostMid = totalCostMin.add(totalCostMax)
+                .divide(new BigDecimal("2"), 2, RoundingMode.HALF_UP);
         
-        BigDecimal costPerItem = totalCost.divide(
-                new BigDecimal(request.getQuantity()), 2, RoundingMode.HALF_UP);
+        // 单件分摊成本
+        int qty = request.getQuantity();
+        BigDecimal costPerItemMin = totalCostMin.divide(new BigDecimal(qty), 2, RoundingMode.HALF_UP);
+        BigDecimal costPerItemMax = totalCostMax.divide(new BigDecimal(qty), 2, RoundingMode.HALF_UP);
         
-        generateWarnings(request, chargeableWeight, volumeWeight, warnings);
+        // 预估时效
+        String deliveryTime = getDeliveryTime(isAir, isSensitive);
+        
+        generateWarnings(request, chargeableWeight, volumeWeight, warnings, needQuote);
         
         return CalculationResult.builder()
-                .totalCost(totalCost.setScale(2, RoundingMode.HALF_UP))
-                .costPerItem(costPerItem)
+                .totalCostMin(totalCostMin)
+                .totalCostMax(totalCostMax)
+                .totalCost(totalCostMid)
+                .costPerItemMin(costPerItemMin)
+                .costPerItemMax(costPerItemMax)
                 .feeDetails(feeDetails)
                 .warnings(warnings)
+                .deliveryTime(deliveryTime)
+                .goodsType(request.getGoodsType())
+                .needQuote(needQuote)
                 .build();
+    }
+    
+    /**
+     * 费率区间内部类
+     */
+    private static class RateRange {
+        BigDecimal min;
+        BigDecimal max;
+        RateRange(BigDecimal min, BigDecimal max) { this.min = min; this.max = max; }
+    }
+    
+    /**
+     * 根据运输方式和货物类型获取费率区间（元/kg 或 元/CBM）
+     * 参考：2026年中国至美国物流价格参考表
+     * 
+     * 空运普货:   30-45元/kg    空运敏感货: 40-65元/kg
+     * 海运普货:   5-20元/kg     海运敏感货: 需单独询价(上浮30%-50%)
+     */
+    private RateRange getFreightRateRange(CalculationRequest request) {
+        boolean isAir = "AIR".equals(request.getShippingMethod());
+        boolean isSensitive = "SENSITIVE".equals(request.getGoodsType());
+        
+        if (isAir) {
+            if (isSensitive) {
+                return new RateRange(new BigDecimal("40"), new BigDecimal("65")); // 空运敏感货 40-65元/kg
+            } else {
+                return new RateRange(new BigDecimal("30"), new BigDecimal("45")); // 空运普货 30-45元/kg
+            }
+        } else {
+            if (isSensitive) {
+                // 海运敏感货：在普货基础上上浮30%-50%，按7.5-30元/kg估算
+                return new RateRange(new BigDecimal("7.50"), new BigDecimal("30.00"));
+            } else {
+                return new RateRange(new BigDecimal("5"), new BigDecimal("20")); // 海运普货 5-20元/kg
+            }
+        }
+    }
+    
+    private String getBaseFreightDesc(CalculationRequest request) {
+        String method = "AIR".equals(request.getShippingMethod()) ? "空运" : "海运";
+        String goodsType = "SENSITIVE".equals(request.getGoodsType()) ? "敏感货" : "普货";
+        String unit = "AIR".equals(request.getShippingMethod()) ? "/kg" : "/kg";
+        RateRange range = getFreightRateRange(request);
+        return method + goodsType + "费率" + range.min + "-" + range.max + unit;
+    }
+    
+    private String getDeliveryTime(boolean isAir, boolean isSensitive) {
+        if (isAir) {
+            return isSensitive ? "6-18个工作日" : "5-15个工作日";
+        } else {
+            return isSensitive ? "30-50个工作日（需单独询价）" : "25-45个工作日";
+        }
     }
     
     private BigDecimal calculateVolumeWeight(CalculationRequest request) {
@@ -88,7 +183,8 @@ public class LogisticsCalculationService {
             BigDecimal chargeable = actualWeight.max(volumeWeight);
             return chargeable.max(MIN_AIR_WEIGHT);
         } else {
-            return calculateVolumeCBM(request);
+            // 海运按体积重计费
+            return request.getWeight().multiply(new BigDecimal(request.getQuantity())).max(volumeWeight);
         }
     }
     
@@ -99,37 +195,11 @@ public class LogisticsCalculationService {
         return volume.divide(SEA_VOLUME_DIVISOR, 4, RoundingMode.HALF_UP);
     }
     
-    private BigDecimal calculateBaseFreight(CalculationRequest request, 
-                                           BigDecimal chargeableWeight, 
-                                           BigDecimal volumeCBM) {
-        BigDecimal rate = getFreightRate(request);
-        
-        if ("AIR".equals(request.getShippingMethod())) {
-            return chargeableWeight.multiply(rate);
-        } else {
-            return volumeCBM.multiply(rate);
-        }
-    }
-    
-    private BigDecimal getFreightRate(CalculationRequest request) {
-        String key = request.getCountry() + "_" + request.getShippingMethod();
-        
-        return switch (key) {
-            case "US_AIR" -> new BigDecimal("45.00");
-            case "US_SEA" -> new BigDecimal("1200.00");
-            case "DE_AIR" -> new BigDecimal("52.00");
-            case "DE_SEA" -> new BigDecimal("1400.00");
-            case "JP_AIR" -> new BigDecimal("38.00");
-            case "JP_SEA" -> new BigDecimal("1000.00");
-            default -> new BigDecimal("50.00");
-        };
-    }
-    
     private BigDecimal calculateFuelSurcharge(BigDecimal baseFreight, String country) {
         BigDecimal rate = switch (country) {
-            case "US" -> new BigDecimal("0.15");
-            case "DE" -> new BigDecimal("0.18");
-            case "JP" -> new BigDecimal("0.12");
+            case "US" -> new BigDecimal("0.15");   // 15%
+            case "DE" -> new BigDecimal("0.18");   // 18%
+            case "JP" -> new BigDecimal("0.12");   // 12%
             default -> new BigDecimal("0.15");
         };
         return baseFreight.multiply(rate).setScale(2, RoundingMode.HALF_UP);
@@ -137,7 +207,8 @@ public class LogisticsCalculationService {
     
     private BigDecimal calculateDestinationFee(CalculationRequest request, 
                                               BigDecimal chargeableWeight, 
-                                              BigDecimal volumeCBM) {
+                                              BigDecimal volumeCBM,
+                                              boolean useMinRate) {
         BigDecimal rate = switch (request.getCountry()) {
             case "US" -> new BigDecimal("8.00");
             case "DE" -> new BigDecimal("12.00");
@@ -146,24 +217,25 @@ public class LogisticsCalculationService {
         };
         
         if ("AIR".equals(request.getShippingMethod())) {
-            return chargeableWeight.multiply(rate);
+            // 空运目的港费也有一定浮动范围
+            BigDecimal adjustedRate = useMinRate ? rate.multiply(new BigDecimal("0.9")) : rate.multiply(new BigDecimal("1.1"));
+            return chargeableWeight.multiply(adjustedRate).setScale(2, RoundingMode.HALF_UP);
         } else {
-            return volumeCBM.multiply(rate.multiply(new BigDecimal("100")));
+            BigDecimal cbmRate = rate.multiply(new BigDecimal("100"));
+            BigDecimal adjustedCbmRate = useMinRate ? cbmRate.multiply(new BigDecimal("0.85")) : cbmRate.multiply(new BigDecimal("1.15"));
+            return volumeCBM.multiply(adjustedCbmRate).setScale(2, RoundingMode.HALF_UP);
         }
     }
     
-    private BigDecimal calculateCustomsFee(String country) {
-        return switch (country) {
+    private BigDecimal calculateCustomsFee(String country, boolean isSensitive) {
+        BigDecimal baseFee = switch (country) {
             case "US" -> new BigDecimal("50.00");
             case "DE" -> new BigDecimal("75.00");
             case "JP" -> new BigDecimal("60.00");
             default -> new BigDecimal("60.00");
         };
-    }
-    
-    private BigDecimal calculateWarehouseFee(CalculationRequest request, BigDecimal chargeableWeight) {
-        BigDecimal rate = new BigDecimal("2.50");
-        return chargeableWeight.multiply(rate).setScale(2, RoundingMode.HALF_UP);
+        // 敏感货清关费略高
+        return isSensitive ? baseFee.multiply(new BigDecimal("1.3")) : baseFee;
     }
     
     private BigDecimal calculateResidentialFee(String country) {
@@ -182,9 +254,10 @@ public class LogisticsCalculationService {
     private void generateWarnings(CalculationRequest request, 
                                  BigDecimal chargeableWeight, 
                                  BigDecimal volumeWeight,
-                                 List<String> warnings) {
-        if (volumeWeight.compareTo(request.getWeight()) > 0) {
-            warnings.add("注意：体积重量(" + volumeWeight + "kg)大于实际重量，将按体积重量计费");
+                                 List<String> warnings,
+                                 boolean needQuote) {
+        if (volumeWeight.compareTo(request.getWeight().multiply(new BigDecimal(request.getQuantity()))) > 0) {
+            warnings.add("注意：体积重量(" + volumeWeight.setScale(2, RoundingMode.HALF_UP) + "kg)大于实际重量，将按体积重量计费");
         }
         
         if ("AIR".equals(request.getShippingMethod()) && 
@@ -197,14 +270,28 @@ public class LogisticsCalculationService {
             request.getHeight().compareTo(new BigDecimal("80")) > 0) {
             warnings.add("警告：尺寸超出标准，可能产生超大件附加费");
         }
+        
+        if ("SENSITIVE".equals(request.getGoodsType())) {
+            warnings.add("提示：敏感货（带电、化妆品等）可能需要额外提供MSDS/鉴定报告");
+        }
+        
+        if (needQuote) {
+            warnings.add("重要：海运敏感货价格为预估值，实际价格需单独询价确认（通常上浮30%-50%）");
+        }
     }
     
     private CalculationResult.FeeDetail createFeeDetail(String name, String desc, 
-                                                        BigDecimal amount, String unit) {
+                                                        BigDecimal amountMin, 
+                                                        BigDecimal amountMax,
+                                                        String unit) {
+        BigDecimal mid = amountMin.add(amountMax)
+                .divide(new BigDecimal("2"), 2, RoundingMode.HALF_UP);
         return CalculationResult.FeeDetail.builder()
                 .feeName(name)
                 .description(desc)
-                .amount(amount.setScale(2, RoundingMode.HALF_UP))
+                .amountMin(amountMin.setScale(2, RoundingMode.HALF_UP))
+                .amountMax(amountMax.setScale(2, RoundingMode.HALF_UP))
+                .amount(mid)
                 .unit(unit)
                 .build();
     }

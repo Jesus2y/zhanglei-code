@@ -18,14 +18,29 @@ import java.util.List;
 public class CalculationResult {
     
     /**
-     * 总费用（单位：人民币元）
+     * 预估总费用最低价（单位：人民币元）
+     */
+    private BigDecimal totalCostMin;
+    
+    /**
+     * 预估总费用最高价（单位：人民币元）
+     */
+    private BigDecimal totalCostMax;
+    
+    /**
+     * 参考总价（取区间中值，单位：人民币元）
      */
     private BigDecimal totalCost;
     
     /**
-     * 单件商品分摊的物流成本（单位：人民币元）
+     * 单件商品分摊的物流成本最低价（单位：人民币元）
      */
-    private BigDecimal costPerItem;
+    private BigDecimal costPerItemMin;
+    
+    /**
+     * 单件商品分摊的物流成本最高价（单位：人民币元）
+     */
+    private BigDecimal costPerItemMax;
     
     /**
      * 费用明细列表（包含各项费用的详细说明）
@@ -36,6 +51,21 @@ public class CalculationResult {
      * 警告信息列表（如体积重量提示、超大件警告等）
      */
     private List<String> warnings;
+    
+    /**
+     * 预估运输时效（工作日），如 "5-15天"
+     */
+    private String deliveryTime;
+    
+    /**
+     * 货物类型（NORMAL-普货，SENSITIVE-敏感货）
+     */
+    private String goodsType;
+    
+    /**
+     * 是否需要单独询价（海运敏感货需要单独询价）
+     */
+    private Boolean needQuote = false;
     
     /**
      * 计算记录唯一标识
@@ -62,7 +92,17 @@ public class CalculationResult {
         private String description;
         
         /**
-         * 费用金额（单位：人民币元）
+         * 最低费用金额（单位：人民币元）
+         */
+        private BigDecimal amountMin;
+        
+        /**
+         * 最高费用金额（单位：人民币元）
+         */
+        private BigDecimal amountMax;
+        
+        /**
+         * 参考金额（取区间中值，单位：人民币元）
          */
         private BigDecimal amount;
         

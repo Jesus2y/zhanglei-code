@@ -22,6 +22,15 @@
   font-weight: bold;
 }
 
+.quote-text {
+  color: #faad14;
+}
+
+.price-range-text {
+  color: #1890ff;
+  font-size: 28rpx;
+}
+
 .time {
   color: #999;
   font-size: 24rpx;

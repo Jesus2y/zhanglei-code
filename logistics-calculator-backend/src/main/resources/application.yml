@@ -28,3 +28,12 @@ app:
     membership:
       monthly-price: 9.9
       currency: CNY
+
+wechat:
+  pay:
+    appId: YOUR_MINI_PROGRAM_APPID
+    mchId: YOUR_MERCHANT_ID
+    apiV3Key: YOUR_API_V3_KEY
+    privateKeyPath: classpath:apiclient_key.pem
+    merchantSerialNumber: YOUR_SERIAL_NUMBER
+    notifyUrl: http://YOUR_DOMAIN/api/v1/payment/callback

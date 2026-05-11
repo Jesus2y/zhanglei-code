@@ -1,12 +1,12 @@
 .result-summary {
   display: flex;
-  justify-content: space-around;
-  align-items: center;
+  flex-direction: column;
   padding: 40rpx 30rpx;
 }
 
 .total-cost, .cost-per-item {
   text-align: center;
+  margin-bottom: 20rpx;
 }
 
 .total-cost .label, .cost-per-item .label {
@@ -15,9 +15,91 @@
   margin-bottom: 10rpx;
 }
 
-.total-cost .value, .cost-per-item .value {
+.total-cost .value {
   font-size: 48rpx;
   font-weight: bold;
+  color: #1890ff;
+}
+
+.cost-per-item .value {
+  font-size: 28rpx;
+  color: #666;
+}
+
+/* 价格区间样式 */
+.price-range {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.price-min, .price-max {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #1890ff;
+}
+
+.price-sep {
+  margin: 0 15rpx;
+  font-size: 32rpx;
+  color: #999;
+}
+
+.price-mid {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+/* 需询价提示 */
+.quote-notice .value {
+  color: #faad14;
+}
+.quote-text {
+  font-size: 44rpx;
+  font-weight: bold;
+}
+.quote-hint {
+  font-size: 22rpx;
+  color: #d46b08;
+  margin-top: 10rpx;
+  line-height: 1.5;
+}
+
+/* 元信息（货物类型+时效） */
+.meta-info {
+  display: flex;
+  justify-content: center;
+  gap: 30rpx;
+  flex-wrap: wrap;
+  margin-top: 15rpx;
+  padding-top: 15rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  font-size: 24rpx;
+}
+
+.meta-label {
+  color: #999;
+}
+
+.meta-value {
+  font-weight: 500;
+}
+
+.normal-tag {
+  color: #52c41a;
+}
+
+.sensitive-tag {
+  color: #fa8c16;
+}
+
+.delivery-time {
   color: #1890ff;
 }
 
@@ -56,6 +138,13 @@
   font-size: 30rpx;
   font-weight: 500;
   color: #333;
+  text-align: right;
+}
+
+.fee-ref {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 4rpx;
 }
 
 .warnings {

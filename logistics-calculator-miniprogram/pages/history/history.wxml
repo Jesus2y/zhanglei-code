@@ -6,15 +6,17 @@
   <view class="card" wx:for="{{historyList}}" wx:key="id">
     <view class="row">
       <text class="label">总成本</text>
-      <text class="value">¥{{item.totalCost}}</text>
+      <text wx:if="{{item.needQuote}}" class="value quote-text">需询价</text>
+      <text wx:elif="{{item.totalCostMin && item.totalCostMax}}" class="value price-range-text">¥{{item.totalCostMin}}~¥{{item.totalCostMax}}</text>
+      <text wx:else class="value">¥{{item.totalCost}}</text>
     </view>
-    <view class="row" wx:if="{{item.costPerItem}}">
-      <text class="label">单件成本</text>
-      <text class="value">¥{{item.costPerItem}}</text>
+    <view class="row" wx:if="{{item.deliveryTime}}">
+      <text class="label">时效</text>
+      <text>{{item.deliveryTime}}</text>
     </view>
-    <view class="row" wx:if="{{item.country}}">
-      <text class="label">目的地</text>
-      <text>{{item.country}} / {{item.shippingMethod}}</text>
+    <view class="row" wx:if="{{item.goodsType}}">
+      <text class="label">货物类型</text>
+      <text>{{item.goodsType === 'SENSITIVE' ? '敏感货' : '普货'}}</text>
     </view>
     <view class="time">{{item.createdAt}}</view>
   </view>
